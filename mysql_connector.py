@@ -100,4 +100,4 @@ class MYSQL:
            print('query():ER10.Unknown_Error: {}'.format(err))
            self.errors += 'query():ER10.Unknown_Error: {}'.format(err)+'\n'
            pass
-return res
+        return res
