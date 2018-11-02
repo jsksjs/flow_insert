@@ -11,8 +11,8 @@ with open("db.cfg") as f:
 with open("cred.cfg") as f:
     usr = f.readline().rstrip('\n')
     pwd = f.readline().rstrip('\n')
-    
-# connect    
+
+# connect
 db = con.MYSQL(host, database, usr, pwd)
 # time query
 start = time.perf_counter()
@@ -20,7 +20,9 @@ start = time.perf_counter()
 # variable to be injected
 id = '1'
 # query that injects ID into %s
-r = db.query("select * from user where UserID=%s;", [(id)], True)
+s = "insert into user values (%s,%s),(%s,%s);"
+v = [None, 'test', None, 'test1']
+r = db.query(s, v)
 
 # stop timing
 stop = time.perf_counter()
