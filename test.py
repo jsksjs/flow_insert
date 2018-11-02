@@ -1,8 +1,3 @@
-#MYSQL v 0.1, 10/25/2014
-#Timothy Becker, UCONN/SOE/CSE Phd Student
-#MYSQL Connection Factory, wraps up sophisticated functionality in
-#an easy to use extensible class...
-
 import mysql_connector as con
 import time
 
