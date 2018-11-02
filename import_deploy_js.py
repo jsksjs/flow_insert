@@ -22,25 +22,27 @@ start = time.perf_counter()
 # variable to be injected
 id = []
 # query that injects ID into %s
-query_base = "insert into deploy values "
+query_base = """insert into deploy (Flag, CameraNumber, SiteID, USDS,
+ DeployStart, DeployEnd, PictureEnd, BatteryBrand, BatteryType, StartBatteryAmp,
+ EndBatteryAmp, Infostrip, MotionDetect, QualitySettings, TimeLapseSettings,
+ MemoryUsed, USGSGage, Comments, FieldStaffDeploy, FieldStaffRetrieve)
+ values """
+
 query = ''
 with open('Data/DeployDataClean.csv', mode='r') as infile:
     reader = csv.reader(infile)
     infile.readline()
 
     values = list(reader)
-    buffer_size = 300
+    buffer_size = 10
     i = 0
     for row in values:
-        i = i + 1
         if i >= buffer_size:
-            query = query[:-1] + ";"
+            query = query_base + query[:-1] + ";"
             r = db.query(query, id, True)
-            print('query results below:')
-            print(r)
             i = 0
             id = []
-            query = query_base
+            query = ''
 
         # the indices of the columns whose types/formats need to be changed
         dates = [4, 5, 6]
@@ -48,7 +50,7 @@ with open('Data/DeployDataClean.csv', mode='r') as infile:
         floats = [9, 10, 15]
 
         # replace null values with None and change types
-        for j in range(0, len(row)):            
+        for j in range(0, len(row)):
             if row[j].rstrip(' ') == '':
                 row[j] = None
             elif j in dates:
@@ -66,10 +68,12 @@ with open('Data/DeployDataClean.csv', mode='r') as infile:
         row.extend([None, None])
         query += '(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s),'
         id.extend(row)
+        i = i + 1
+
     if i != 0:
-        r = db.query(query, id, True)
-        print('query results below:')
-        print(r)
+        query = query_base + query[:-1] + ";"
+        r = db.query(query, id)
+        query = ''
 
 """r = db.query("select * from user where UserID=%s;", [(id)], True)"""
 
