@@ -2,6 +2,7 @@ import mysql_connector as con
 import time
 import meta as m
 
+# TODO: FIX get_exif_tags in utils.py
 if __name__ == '__main__':
     __spec__ = None
     # read cfg for host and database to connect to

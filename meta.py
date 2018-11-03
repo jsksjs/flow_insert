@@ -26,6 +26,7 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
         raise IOError
     if tag_s is not None:
         tag_set = tag_s.replace("\n", "").split(', ')
+        print(tag_set)
     else:
         tag_set = []
     if q_d is not None:
@@ -82,7 +83,6 @@ def process(in_dir, tag_set, q_dir, cpus):
                             os.rename(os.path.join(dirpath, f),
                                       os.path.join(q_dir, f))
                 total += len(sid_images)
-                print(sid_images)
                 if len(sid_images) > 0:
                     p1.apply_async(exif,
                                    args=(sid_images, sid, tag_set),

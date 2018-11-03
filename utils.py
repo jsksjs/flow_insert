@@ -2,7 +2,7 @@ import exifread
 import hashlib
 from collections import defaultdict
 
-
+# TODO:FIX
 # given an image file with exif metadata return set of tags that are required
 def get_exif_tags(path, tag_set=[]):
     tags = {}
