@@ -30,7 +30,7 @@ with open('Data/sites.csv', mode='r') as infile:
 	infile.readline()
 
 	values = list(reader)
-	buffer_size = 2
+	buffer_size = 100
 	i = 0
 	for row in values:
 		i = i + 1
@@ -58,33 +58,17 @@ with open('Data/sites.csv', mode='r') as infile:
 				row[j] = float(row[j])
 		query += '(%s,%s,%s,%s,%s),'
 		id.extend(row)
-		
+		if(len(row) != 5):
+			print(row)
 		if i >= buffer_size:
-			print('\r\ni >= buffer_size:')
 			query = query[:-1] + ";"
-			print('\r\nquery = ')
-			print(query)
-			print("values = ")
-			print(id)
 			r = db.query(query, id, False)
-			#print('query results below:')
-			#print(r)
 			i = 0
 			id = []
 			query = query_base
 	if i != 0:
-		print('\r\noutside row:')
 		query = query[:-1] + ";"
-		print('\r\nquery = ')
-		print(query)
-		print("values = ")
-		print(id)
 		r = db.query(query, id, False)
-		#print('query results below:')
-		#print(r)
-		#print(r)
-
-"""r = db.query("select * from user where UserID=%s;", [(id)], True)"""
 
 # stop timing
 stop = time.perf_counter()
