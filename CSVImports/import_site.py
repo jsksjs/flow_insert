@@ -1,3 +1,4 @@
+# done, works
 import mysql_connector as con
 import time
 import csv
@@ -22,31 +23,24 @@ start = time.perf_counter()
 # variable to be injected
 id = []
 # query that injects ID into %s
-query_base = """insert into inventory (CameraModel,
- SerialNumber, CameraNumber, DateReceived,
- LastLocation, StillInUse, Comments)
- values """
+query_base = "INSERT INTO site (SiteID, SiteName, ProximityLandmark, YLat, XLong) VALUES "
+query = query_base
 
-query = ''
-with open('Data/InventoryDataClean.csv', mode='r') as infile:
+with open('Data/sites.csv', mode='r') as infile:
     reader = csv.reader(infile)
     infile.readline()
 
     values = list(reader)
-    buffer_size = 1
+    buffer_size = 50000
     i = 0
     for row in values:
-        if i >= buffer_size:
-            query = query_base + query[:-1] + ";"
-            r = db.query(query, id)
-            i = 0
-            id = []
-            query = ''
+        i = i + 1
 
         # the indices of the columns whose types/formats need to be changed
-        dates = [3]
-        ints = [2]
-        chars = [5]
+        ints = []
+        dates = []
+        floats = [3,4]
+
         # replace null values with None and change types
         for j in range(0, len(row)):
             if row[j].rstrip(' ') == '':
@@ -61,23 +55,21 @@ with open('Data/InventoryDataClean.csv', mode='r') as infile:
                 row[j] = year + '-' + month + '-' + day
             elif j in ints:
                 row[j] = int(row[j])
-            elif j in chars:
-                row[j] = str(row[j])
-        query += '(' + '%s,'*(len(row)-1) + '%s),'
+            elif j in floats:
+                row[j] = float(row[j])
+        query += '(%s,%s,%s,%s,%s),'
         id.extend(row)
-        i = i + 1
-        print(str(row)+" "+str(len(row)))
-        print()
-
+        if i >= buffer_size:
+            query = query[:-1] + ";"
+            r = db.query(query, id, False)
+            i = 0
+            id = []
+            query = query_base
     if i != 0:
-        query = query_base + query[:-1] + ";"
-        r = db.query(query, id)
-        query = ''
-
-"""r = db.query("select * from user where UserID=%s;", [(id)], True)"""
+        query = query[:-1] + ";"
+        r = db.query(query, id, False)
 
 # stop timing
 stop = time.perf_counter()
 # print the result and rounded query time
 print(f'\n{r}\ncompleted query in {round(stop-start, 6)} sec')
-[print(i) for i in (db.errors.split("query():"))]
