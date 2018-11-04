@@ -19,8 +19,16 @@ def get_exif_tags(path, tag_set=[]):
                 T[t] = str(tags[t]).rstrip(' ')
             else:
                 T[t] = None
-        check = hashlib.shake_128()
-        T["Data"] = f.read()
-        check.update(T["Data"])
-        T["Checksum"] = check.hexdigest(128)
     return T
+
+
+def hash_it(image):
+    data = b''
+    checksum = ''
+    hasher = hashlib.sha256()
+    with open(image, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            data += chunk
+            hasher.update(chunk)
+    checksum = hasher.hexdigest()
+    return {"Data": data, "Checksum": checksum}

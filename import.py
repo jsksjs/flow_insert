@@ -1,5 +1,6 @@
 import mysql_connector as con
 import time
+import os
 import meta as m
 
 # TODO: FIX get_exif_tags in utils.py
@@ -39,23 +40,32 @@ if __name__ == '__main__':
 
     query = ''
 
-    scrape = m.get_meta("C:/Users/Joey/Desktop/images",
-                        ("Image ImageDescription, Image Orientation, "
-                         "Image XResolution, Image YResolution, "
-                         "Image ResolutionUnit, Image Software, "
-                         "Image DateTime, EXIF ExposureTime, EXIF FNumber, "
-                         "EXIF ExposureProgram, EXIF ISOSpeedRatings, "
-                         "EXIF ExifVersion, EXIF ComponentsConfiguration, "
-                         "EXIF CompressedBitsPerPixel, "
-                         "EXIF ShutterSpeedValue, "
-                         "EXIF ApertureValue, EXIF ExposureBiasValue, "
-                         "EXIF MaxApertureValue, "
-                         "EXIF MeteringMode, EXIF Flash"
-                         ), "C:/Users/Joey/Desktop/quarantine")
+    in_dir = "C:/Users/Joey/Desktop/images"
+    tag_set = ("Image ImageDescription, Image Orientation, "
+               "Image XResolution, Image YResolution, "
+               "Image ResolutionUnit, Image Software, "
+               "Image DateTime, EXIF ExposureTime, EXIF FNumber, "
+               "EXIF ExposureProgram, EXIF ISOSpeedRatings, "
+               "EXIF ExifVersion, EXIF ComponentsConfiguration, "
+               "EXIF CompressedBitsPerPixel, "
+               "EXIF ShutterSpeedValue, "
+               "EXIF ApertureValue, EXIF ExposureBiasValue, "
+               "EXIF MaxApertureValue, "
+               "EXIF MeteringMode, EXIF Flash")
+    
+    q_dir = "C:/Users/Joey/Desktop/quarantine"
+    cpus = os.cpu_count()
 
-    print(scrape)
+    start = time.perf_counter()
 
+    total = m.get_meta(in_dir, tag_set, q_dir, cpus)
 
+    stop = time.perf_counter()
+
+    for result in total:
+        print(result)
+
+    print(total)
 
 
 """

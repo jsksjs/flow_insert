@@ -24,7 +24,7 @@ class MYSQL:
     def __enter__(self):
         return self
 
-    # hype is that the DB error is generating stange files
+    # type is that the DB error is generating stange files
     def __exit__(self, type, value, traceback):
         # saves sve_errors.txt to DATA folder that sits at the same level as this class.py file
         # directory = os.path.dirname(os.path.abspath(__file__))+'/'
