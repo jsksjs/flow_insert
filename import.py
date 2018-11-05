@@ -2,10 +2,51 @@ import mysql_connector as con
 import time
 import os
 import meta as m
+import argparse
 
 # TODO: fail gracefully during batch-inserts
 # (coninue on to single-inserts, use "Path" key to get file).
 # TODO: sort success and failure files by moving them
+
+des="""ECO DB Import Tool"""
+
+parser = argparse.ArgumentParser(description=des,
+                                 formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('-i',
+                    '--in_dir',
+                    type=str,
+                    help='image input directory')
+parser.add_argument('-q',
+                    '--q_dir',
+                    type=str,
+                    help='image quarantine directory')
+parser.add_argument('-d',
+                    '--d_dir',
+                    type=str,
+                    help='image delete directory')
+parser.add_argument('-p',
+                    '--cpus',
+                    type=int,
+                    help='number of processors')
+args = parser.parse_args()
+
+if args.in_dir is not None and os.path.exists(args.in_dir):
+    in_dir = args.in_dir
+else:
+    raise IOError
+if args.q_dir is not None and os.path.exists(args.q_dir):
+    q_dir = args.q_dir
+else:
+    raise IOError
+if args.d_dir is not None and os.path.exists(args.d_dir):
+    d_dir = args.d_dir
+else:
+    raise IOError
+if args.cpus is not None:
+    cpus = args.cpus
+else:
+    cpus = os.cpu_count()
+
 
 def cleaned_meta(meta):
     values = []
@@ -68,7 +109,6 @@ if __name__ == '__main__':
 
     query = ''
 
-    in_dir = "C:/Users/Joey/Desktop/images"
     tag_set = ("Image ImageDescription, Image Orientation, "
                "Image XResolution, Image YResolution, "
                "Image ResolutionUnit, Image Software, "
@@ -80,10 +120,6 @@ if __name__ == '__main__':
                "EXIF ApertureValue, EXIF ExposureBiasValue, "
                "EXIF MaxApertureValue, "
                "EXIF MeteringMode, EXIF Flash")
-
-    q_dir = "C:/Users/Joey/Desktop/quarantine"
-    d_dir = "C:/Users/Joey/Desktop/del"
-    cpus = os.cpu_count()
 
     (total, meta), = m.get_meta(in_dir, tag_set, q_dir, cpus).items()
     values = cleaned_meta(meta)
