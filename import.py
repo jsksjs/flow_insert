@@ -62,53 +62,11 @@ if __name__ == '__main__':
 
     stop = time.perf_counter()
 
-    for result in total:
-        print(result)
+    # for result in total:
+    #   print(result)
 
-    print(total)
-
-
-"""
-buffer_size = 1
-i = 500
-for row in values:
-    i = i + 1
-    # the indices of the columns whose types/formats need to be changed
-    dates = [3]
-    ints = [2]
-    chars = [5]
-    # replace null values with None and change types
-    for j in range(0, len(row)):
-        if row[j].rstrip(' ') == '':
-            row[j] = None
-        elif j in dates:
-            temp = row[j].split('/')
-            year = temp[2]
-            month = temp[0]
-            day = temp[1]
-            month.zfill(2)
-            day.zfill(2)
-            row[j] = year + '-' + month + '-' + day
-        elif j in ints:
-            row[j] = int(row[j])
-        elif j in chars:
-            row[j] = str(row[j])
-    query += '(' + '%s,'*(len(row)-1) + '%s),'
-    inj.extend(row)
-    if i >= buffer_size:
-        query = statement + query[:-1] + ";"
-        r = db.query(query, inj)
-        i = 0
-        inj = []
-        query = ''
-if i != 0:
-    query = statement + query[:-1] + ";"
-    r = db.query(query, inj)
-    query = ''
-
-# stop timing
-stop = time.perf_counter()
-# print the result and rounded query time
-print(f'\n{r}\ncompleted query in {round(stop-start, 6)} sec')
-[print(i) for i in (db.errors.split("query():"))]
-"""
+    # print(total)    
+    with open("oog.txt", "w") as f:
+        for t in total:
+            for j in t:                
+                f.write(str(t[j]))
