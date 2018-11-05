@@ -102,31 +102,6 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
                     time.sleep(0.1)
     p1.close()
     p1.join()
-    return results
-
-    p1 = mp.Pool(processes=cpus)
-    for path in paths:
-        for p in paths[path]:
-            # each site in ||
-            for dirpath, dirnames, filenames in os.walk(p):
-                sid_images = []
-                for f in filenames:
-                    if f.lower().endswith(".jpg"):
-                        if os.path.basename(p).lower() in f.lower():
-                            sid_images.append(os.path.join(dirpath, f))
-                if len(sid_images) > 0:
-                    p1.apply_async(h,
-                                   args=([sid_images]),
-                                   callback=insert_results)
-                    time.sleep(0.1)
-    p1.close()
-    p1.join()
-
-    for t in hash_results:
-        for j in t:
-            results[j].update(t[j])
-            f.write(str(t[j])+"\n")
 
     stop = time.perf_counter()
-    print(f'completed meta scrape for {total} files in {round(stop-start, 6)} sec')
-    return results
+    return {total: results}

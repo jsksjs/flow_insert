@@ -34,8 +34,8 @@ with open('../Data/InventoryDataClean.csv', mode='r') as infile:
     infile.readline()
 
     values = list(reader)
-    buffer_size = 1
-    i = 500
+    buffer_size = 200
+    i = 0
     for row in values:
         i = i + 1
         # the indices of the columns whose types/formats need to be changed
