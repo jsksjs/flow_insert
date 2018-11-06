@@ -3,13 +3,13 @@ import time
 import csv
 
 # read cfg for host and database to connect to
-with open("db.cfg") as f:
+with open("../db.cfg") as f:
     host = f.readline().rstrip('\n')
     database = f.readline().rstrip('\n')
 
 # read cfg for credentials (username and password to DB)
     # TODO: decrypt using a key found in another file
-with open("cred.cfg") as f:
+with open("../cred.cfg") as f:
     usr = f.readline().rstrip('\n')
     pwd = f.readline().rstrip('\n')
 
@@ -29,7 +29,7 @@ query_base = """insert into deploy (Flag, CameraNumber, SiteID, USDS,
  values """
 
 query = ''
-with open('Data/DeployDataClean.csv', mode='r') as infile:
+with open('../Data/DeployDataClean.csv', mode='r') as infile:
     reader = csv.reader(infile)
     infile.readline()
 

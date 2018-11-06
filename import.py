@@ -5,10 +5,6 @@ import os
 import meta as m
 import argparse
 
-# TODO: fail gracefully during batch-inserts
-# (coninue on to single-inserts, use "Path" key to get file).
-# TODO: sort success and failure files by moving them
-
 des = """ECO DB Import Tool"""
 
 parser = argparse.ArgumentParser(description=des,
@@ -151,7 +147,10 @@ if __name__ == '__main__':
     i = 0
     timestamps = ["DateTime"]
     ints = ["ImageDescription", "XResolution", "YResolution"]
-    floats = ["ExposureTime"]
+    floats = ["ExposureTime",
+              "FNumber",
+              "CompressedBitsPerPixel",
+              "ShutterSpeedValue"]
     files_pending = []
     deletes = []
     quarantines = []
@@ -207,7 +206,6 @@ if __name__ == '__main__':
             if fail:
                 fail_query = failure + fail_query[:-1] + ";"
                 r = db.query(fail_query, fail)
-        print(f'Attempted insertion for {total} files in {round(stop-start, 6)} sec')
 
         clean_dir(d_dir, deletes)
         clean_dir(q_dir, quarantines)
