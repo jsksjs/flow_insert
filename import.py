@@ -1,5 +1,6 @@
 import mysql_connector as con
-import time
+from time import perf_counter
+from datetime import datetime
 import os
 import meta as m
 import argparse
@@ -8,7 +9,7 @@ import argparse
 # (coninue on to single-inserts, use "Path" key to get file).
 # TODO: sort success and failure files by moving them
 
-des="""ECO DB Import Tool"""
+des = """ECO DB Import Tool"""
 
 parser = argparse.ArgumentParser(description=des,
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -64,6 +65,22 @@ def cleaned_meta(meta):
     return values
 
 
+def clean_dir(out, files):
+    for f in files:
+        folder = os.path.basename(os.path.dirname(f))
+        out_folder = os.path.join(out, folder)
+        file = os.path.join(out_folder, os.path.basename(f))
+        if not os.path.exists(out_folder):
+            os.mkdir(out_folder)
+        os.rename(f, file)
+        cur_folder = os.path.split(f)[0]
+        if(cur_folder != in_dir):
+            try:
+                os.rmdir(cur_folder)
+            except OSError:
+                pass
+
+
 if __name__ == '__main__':
     __spec__ = None
     # read cfg for host and database to connect to
@@ -77,11 +94,10 @@ if __name__ == '__main__':
         usr = f.readline().rstrip('\n')
         pwd = f.readline().rstrip('\n')
 
-    # time query
-    start = time.perf_counter()
-
     # variable to be injected
     inj = []
+    # failure injectable
+    fail = []
     # query that injects ID into %s
     columns = ("CameraNumber,Orientation,"
                "XResolution,YResolution,"
@@ -106,8 +122,11 @@ if __name__ == '__main__':
             "MaxApertureValue,MeteringMode,Flash,"
             "Checksum,Data")
     statement = (f"insert into image ({columns}) values ")
-
     query = ''
+    log = ("insert into importrun (Start, End, Attempted) values (%s, %s, %s);")
+    failure = ("insert into failure (Start, Checksum, Note) values ")
+    fail_query = ''
+
 
     tag_set = ("Image ImageDescription, Image Orientation, "
                "Image XResolution, Image YResolution, "
@@ -136,14 +155,14 @@ if __name__ == '__main__':
     files_pending = []
     deletes = []
     quarantines = []
-    start = time.perf_counter()
+    start = perf_counter()
+    l_start = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     # connect and query
     with con.MYSQL(host, database, usr, pwd) as db:
         for row in values:
-            i = i + 1
             fRow = []
-            for c in cols:
-                try:
+            try:
+                for c in cols:
                     if c not in row or row[c].rstrip(' ') == '':
                         row[c] = None
                     elif c in timestamps:
@@ -158,8 +177,12 @@ if __name__ == '__main__':
                         else:
                             row[c] = float(row[c])
                     fRow.append(row[c])
-                except Exception as e:
-                    print(e)
+            except Exception as e:
+                quarantines.append(row["Path"])
+                fail.extend([l_start, row["Checksum"], str(e)[:255]])
+                fail_query += '(' + ('%s,'*2) + '%s),'
+                continue
+            i = i + 1
             files_pending.append(row["Path"])
             row = fRow
             query += '(' + '%s,'*(len(cols)-1) + '%s),'
@@ -177,17 +200,14 @@ if __name__ == '__main__':
             query = statement + query[:-1] + ";"
             r = db.query(query, inj)
             query = ''
-        stop = time.perf_counter()
+        stop = perf_counter()
+        if total > 0:
+            l_stop = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            db.query(log, [l_start, l_stop, total])
+            if fail:
+                fail_query = failure + fail_query[:-1] + ";"
+                r = db.query(fail_query, fail)
         print(f'Attempted insertion for {total} files in {round(stop-start, 6)} sec')
-        for f in deletes:
-            folder = os.path.basename(os.path.dirname(f))
-            del_folder = os.path.join(d_dir, folder)
-            file = os.path.join(del_folder, os.path.basename(f))
-            if not os.path.exists(del_folder):
-                os.mkdir(del_folder)
-            os.rename(f, file)
-            cur_folder = os.path.split(f)[0]
-            try:
-                os.rmdir(cur_folder)
-            except OSError:
-                pass
+
+        clean_dir(d_dir, deletes)
+        clean_dir(q_dir, quarantines)
