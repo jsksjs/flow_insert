@@ -52,6 +52,22 @@ def h(sid_images):
     return S
 
 
+def clean_dir(out, in_dir, files):
+    for f in files:
+        folder = os.path.basename(os.path.dirname(f))
+        out_folder = os.path.join(out, folder)
+        file = os.path.join(out_folder, os.path.basename(f))
+        if not os.path.exists(out_folder):
+            os.mkdir(out_folder)
+        os.rename(f, file)
+        cur_folder = os.path.split(f)[0]
+        if(cur_folder != in_dir):
+            try:
+                os.rmdir(cur_folder)
+            except OSError:
+                pass
+
+
 def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
     if in_d is not None and os.path.exists(in_d):
         in_dir = in_d
@@ -71,7 +87,7 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
     else:
         cpus = os.cpu_count()
 
-    start = time.perf_counter()
+    quarantines = []
 
     paths = defaultdict(lambda: [])
     for dirpath, dirnames, filenames in os.walk(in_dir):
@@ -84,16 +100,20 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
     total = 0
     for path in paths:
         for p in paths[path]:
+            folder_info = os.path.basename(p).split('_')
+            folder_info[3] = folder_info[3].split(' ')[0]
             # each site in ||
             for dirpath, dirnames, filenames in os.walk(p):
                 sid_images = []
                 for f in filenames:
-                    if f.lower().endswith(".jpg"):
-                        if os.path.basename(p).lower() in f.lower():
+                    if f.lower().endswith(".jpg"):   
+                        file_info = f.split('_')
+                        if ' ' in file_info[3]:
+                            file_info[3] = file_info[3].split(' ')[0]
+                        if bool(set(file_info) == set(folder_info)):
                             sid_images.append(os.path.join(dirpath, f))
                         else:
-                            os.rename(os.path.join(dirpath, f),
-                                      os.path.join(q_dir, f))
+                            quarantines.append(os.path.join(dirpath, f))
                 total += len(sid_images)
                 if len(sid_images) > 0:
                     p1.apply_async(exif,
@@ -103,5 +123,6 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
     p1.close()
     p1.join()
 
-    stop = time.perf_counter()
+    #clean_dir(q_dir, in_dir, quarantines)
+
     return {total: results}

@@ -25,6 +25,10 @@ parser.add_argument('-p',
                     '--cpus',
                     type=int,
                     help='number of processors')
+parser.add_argument('-b',
+                    '--buffer_size',
+                    type=int,
+                    help='buffer size')
 args = parser.parse_args()
 
 if args.in_dir is not None and os.path.exists(args.in_dir):
@@ -43,6 +47,10 @@ if args.cpus is not None:
     cpus = args.cpus
 else:
     cpus = os.cpu_count()
+if args.buffer_size is not None:
+    buffer_size = args.buffer_size
+else:
+    buffer_size = 1
 
 
 def cleaned_meta(meta):
@@ -81,14 +89,14 @@ if __name__ == '__main__':
     __spec__ = None
     # read cfg for host and database to connect to
     with open("db.cfg") as f:
-        host = f.readline().rstrip('\n')
-        database = f.readline().rstrip('\n')
+        host = f.readline().strip('\n')
+        database = f.readline().strip('\n')
 
     # read cfg for credentials (username and password to DB)
     # TODO: decrypt using a key found in another file
     with open("cred.cfg") as f:
-        usr = f.readline().rstrip('\n')
-        pwd = f.readline().rstrip('\n')
+        usr = f.readline().strip('\n')
+        pwd = f.readline().strip('\n')
 
     # variable to be injected
     inj = []
@@ -143,7 +151,6 @@ if __name__ == '__main__':
     # total time of the inserts and tweaking the buffer size argument
     # based on consistent increases in time
     cols = tags.split(',')
-    buffer_size = 1
     i = 0
     timestamps = ["DateTime"]
     ints = ["ImageDescription", "XResolution", "YResolution"]
@@ -162,7 +169,7 @@ if __name__ == '__main__':
             fRow = []
             try:
                 for c in cols:
-                    if c not in row or row[c].rstrip(' ') == '':
+                    if c not in row or row[c].strip(' ') == '':
                         row[c] = None
                     elif c in timestamps:
                         temp = row[c].split(' ')
@@ -187,17 +194,33 @@ if __name__ == '__main__':
             query += '(' + '%s,'*(len(cols)-1) + '%s),'
             inj.extend(row)
             if i >= buffer_size:
-                query = statement + query[:-1] + ";"
+                query = statement + query[:-1] + ';'
                 r = db.query(query, inj)
                 if not db.errors:
                     deletes.extend(files_pending)
                     files_pending = []
+                else:
+                    data = [inj[x:x+len(cols)] for x in range(0, len(inj), len(cols))]
+                    query = statement + '(' + '%s,'*(len(cols)-1) + '%s);'
+                    for d in data:
+                        inj = d
+                        r = db.query(query, inj)
+                    db.errors = ''
                 i = 0
                 inj = []
                 query = ''
         if i != 0:
             query = statement + query[:-1] + ";"
             r = db.query(query, inj)
+            if not db.errors:
+                deletes.extend(files_pending)
+                files_pending = []
+            else:
+                data = [inj[x:x+len(cols)] for x in range(0, len(inj), len(cols))]
+                query = statement + '(' + '%s,'*(len(cols)-1) + '%s);'
+                for d in data:
+                    inj = d
+                    r = db.query(query, inj)
             query = ''
         stop = perf_counter()
         if total > 0:
@@ -207,5 +230,6 @@ if __name__ == '__main__':
                 fail_query = failure + fail_query[:-1] + ";"
                 r = db.query(fail_query, fail)
 
-        clean_dir(d_dir, deletes)
-        clean_dir(q_dir, quarantines)
+            r = db.query("insert into performance (Start, Time, Buffer, Attempted) values (%s, %s, %s, %s);", [l_start, round(stop-start, 6), buffer_size, total])
+            #clean_dir(d_dir, deletes)
+            #clean_dir(q_dir, quarantines)
