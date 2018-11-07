@@ -231,5 +231,6 @@ if __name__ == '__main__':
                 r = db.query(fail_query, fail)
 
             r = db.query("insert into performance (Start, Time, Buffer, Attempted) values (%s, %s, %s, %s);", [l_start, round(stop-start, 6), buffer_size, total])
+            #r = db.query("delete from image;", [])
             #clean_dir(d_dir, deletes)
             #clean_dir(q_dir, quarantines)
