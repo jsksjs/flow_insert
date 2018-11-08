@@ -1,5 +1,6 @@
 # done, works
 import mysql_connector as con
+from datetime import datetime
 import time
 import csv
 
@@ -40,20 +41,16 @@ with open('../Data/InventoryDataClean.csv', mode='r') as infile:
         i = i + 1
         # the indices of the columns whose types/formats need to be changed
         dates = [3]
-        ints = [2]
+        ints = [2, 5]
         chars = [5]
         # replace null values with None and change types
         for j in range(0, len(row)):
             if row[j].rstrip(' ') == '':
                 row[j] = None
             elif j in dates:
-                temp = row[j].split('/')
-                year = temp[2]
-                month = temp[0]
-                day = temp[1]
-                month.zfill(2)
-                day.zfill(2)
-                row[j] = year + '-' + month + '-' + day
+                d = datetime.strptime(row[j], "%m/%d/%Y").date()
+                ts = time.mktime(d.timetuple())
+                row[j] = int(ts)
             elif j in ints:
                 row[j] = int(row[j])
             elif j in chars:
