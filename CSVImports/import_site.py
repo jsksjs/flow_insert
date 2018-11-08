@@ -4,13 +4,13 @@ import time
 import csv
 
 # read cfg for host and database to connect to
-with open("db.cfg") as f:
+with open("../db.cfg") as f:
     host = f.readline().rstrip('\n')
     database = f.readline().rstrip('\n')
 
 # read cfg for credentials (username and password to DB)
     # TODO: decrypt using a key found in another file
-with open("cred.cfg") as f:
+with open("../cred.cfg") as f:
     usr = f.readline().rstrip('\n')
     pwd = f.readline().rstrip('\n')
 
@@ -26,7 +26,7 @@ id = []
 query_base = "INSERT INTO site (SiteID, SiteName, ProximityLandmark, YLat, XLong) VALUES "
 query = query_base
 
-with open('Data/sites.csv', mode='r') as infile:
+with open('../Data/sites.csv', mode='r') as infile:
     reader = csv.reader(infile)
     infile.readline()
 

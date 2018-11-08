@@ -1,7 +1,6 @@
 import mysql_connector as con
 from time import perf_counter
 from datetime import datetime
-import time
 import os
 import meta as m
 import argparse
@@ -153,6 +152,7 @@ if __name__ == '__main__':
     # based on consistent increases in time
     cols = tags.split(',')
     i = 0
+    buffer_dumps = 0
     timestamps = ["DateTime"]
     ints = ["ImageDescription", "XResolution", "YResolution"]
     floats = ["ExposureTime",
@@ -173,8 +173,8 @@ if __name__ == '__main__':
                     if c not in row or row[c].strip(' ') == '':
                         row[c] = None
                     elif c in timestamps:
-                        temp = row[c].split(' ')
-                        row[c] = temp[0].replace(':', '-') + " " + temp[1]
+                        t = datetime.strptime(row[c], "%Y:%m:%d %H:%M:%S")
+                        row[c] = t.strftime("%Y-%m-%d %H:%M:%S")
                     elif c in ints:
                         row[c] = int(row[c])
                     elif c in floats:
@@ -187,7 +187,7 @@ if __name__ == '__main__':
             except Exception as e:
                 quarantines.append(row["Path"])
                 fail.extend([l_start, row["Checksum"], str(e)[0:500]])
-                fail_query += '(' + ('%s,'*2) + '%s),'
+                fail_query += '(' + '%s,'*2 + '%s),'
                 continue
             i = i + 1
             files_pending.append(row["Path"])
@@ -201,14 +201,16 @@ if __name__ == '__main__':
                     deletes.extend(files_pending)
                     files_pending = []
                 else:
+                    buffer_dumps += 1
                     data = [inj[x:x+len(cols)] for x in range(0, len(inj), len(cols))]
                     query = statement + '(' + '%s,'*(len(cols)-1) + '%s);'
-                    for d in data:
+                    for d, j in zip(data, files_pending):
                         inj = d
                         r = db.query(query, inj)
-                        if db.errors:                            
-                            fail.extend([l_start, d[21], str(db.errors)[0:500]])
-                            fail_query += '(' + ('%s,'*2) + '%s),'
+                        if db.errors:
+                            quarantines.append(j)
+                            fail.extend([l_start, d[20], str(db.errors)[0:500]])
+                            fail_query += '(' + '%s,'*2 + '%s),'
                             db.errors = ''                    
                 i = 0
                 inj = []
@@ -220,14 +222,16 @@ if __name__ == '__main__':
                 deletes.extend(files_pending)
                 files_pending = []
             else:
+                buffer_dumps += 1
                 data = [inj[x:x+len(cols)] for x in range(0, len(inj), len(cols))]
                 query = statement + '(' + '%s,'*(len(cols)-1) + '%s);'
-                for d in data:
+                for d, j in zip(data, files_pending):
                     inj = d
                     r = db.query(query, inj)
                     if db.errors:
-                        fail.extend([l_start, d[21], str(db.errors)[0:500]])
-                        fail_query += '(' + ('%s,'*2) + '%s),'
+                        quarantines.append(j)
+                        fail.extend([l_start, d[20], str(db.errors)[0:500]])
+                        fail_query += '(' + '%s,'*2 + '%s),'
                         db.errors = ''  
             query = ''
         stop = perf_counter()
@@ -238,7 +242,8 @@ if __name__ == '__main__':
                 fail_query = failure + fail_query[:-1] + ";"
                 r = db.query(fail_query, fail)
 
-            r = db.query("insert into performance (Start, Time, Buffer, Attempted) values (%s, %s, %s, %s);", [l_start, round(stop-start, 6), buffer_size, total])
+            print(str(l_start), str(round(stop-start, 6)), str(buffer_size), str(total), str(buffer_dumps))
+            r = db.query("insert into performance (Start, Time, Buffer, Attempted, BufferDumps) values (%s, %s, %s, %s, %s);", [l_start, round(stop-start, 6), buffer_size, total, buffer_dumps])
             #r = db.query("delete from image;", [])
             #clean_dir(d_dir, deletes)
             #clean_dir(q_dir, quarantines)
