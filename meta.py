@@ -40,18 +40,6 @@ def exif(sid_images, tag_set):
     return S
 
 
-def h(sid_images):
-    S = []
-    for path in sid_images:
-        if os.name == 'nt':
-            p = path.rsplit('\\')[-1]
-            S.append({p: utils.hash_it(path)})
-        else:
-            p = path.rsplit('/')[-1]
-            S.append({p: utils.hash_it(path)})
-    return S
-
-
 def clean_dir(out, in_dir, files):
     for f in files:
         folder = os.path.basename(os.path.dirname(f))
