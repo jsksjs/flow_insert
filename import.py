@@ -1,6 +1,7 @@
 import mysql_connector as con
 from time import perf_counter
 from datetime import datetime
+import time
 import os
 import meta as m
 import argparse
@@ -105,7 +106,7 @@ if __name__ == '__main__':
     # query that injects ID into %s
     columns = ("CameraNumber,Orientation,"
                "XResolution,YResolution,"
-               "ResolutionUnit,Software,DateTime,"
+               "ResolutionUnit,Software,TimeTaken,"
                "ExposureTime,FNumber,ExposureProgram,"
                "ISOSpeedRatings,ExifVersion,"
                "ComponentsConfiguration,"
@@ -185,7 +186,7 @@ if __name__ == '__main__':
                     fRow.append(row[c])
             except Exception as e:
                 quarantines.append(row["Path"])
-                fail.extend([l_start, row["Checksum"], str(e)[:255]])
+                fail.extend([l_start, row["Checksum"], str(e)[0:500]])
                 fail_query += '(' + ('%s,'*2) + '%s),'
                 continue
             i = i + 1
@@ -205,7 +206,10 @@ if __name__ == '__main__':
                     for d in data:
                         inj = d
                         r = db.query(query, inj)
-                    db.errors = ''
+                        if db.errors:                            
+                            fail.extend([l_start, d[21], str(db.errors)[0:500]])
+                            fail_query += '(' + ('%s,'*2) + '%s),'
+                            db.errors = ''                    
                 i = 0
                 inj = []
                 query = ''
@@ -221,6 +225,10 @@ if __name__ == '__main__':
                 for d in data:
                     inj = d
                     r = db.query(query, inj)
+                    if db.errors:
+                        fail.extend([l_start, d[21], str(db.errors)[0:500]])
+                        fail_query += '(' + ('%s,'*2) + '%s),'
+                        db.errors = ''  
             query = ''
         stop = perf_counter()
         if total > 0:

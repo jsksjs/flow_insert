@@ -78,7 +78,7 @@ class MYSQL:
             self.conn.commit()
         except msc.errors.ProgrammingError as err:
             print('query():ER6.SQL_Malformed Error: {}'.format(err))
-            print('SQL GIVEN: '+sql+str(v)[0:512])
+            print('SQL GIVEN: '+sql+str(v)[0:500])
             self.errors += 'query():ER6.SQL_Malformed\n' + sql + str(v) + '\n'
         except msc.errors.DataError:
             print('query():ER7.Data_Not_Matching_Template')
