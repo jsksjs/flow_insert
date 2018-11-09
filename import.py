@@ -168,10 +168,12 @@ if __name__ == '__main__':
     # connect and query
     with con.MYSQL(host, database, usr, pwd) as db:
         for row in values:
+            fa = {}
             fRow = []
             try:
                 for c in cols:
-                    if c not in row or row[c] is not None and row[c].strip(' ') == '':
+                    fa = {c: row[c]}
+                    if row.get(c) is None or row[c].strip(' ') == '':
                         row[c] = None
                     elif c in timestamps:
                         d = datetime.strptime(row[c], "%Y:%m:%d %H:%M:%S")
@@ -182,10 +184,12 @@ if __name__ == '__main__':
                     elif c in floats:
                         if '/' in row[c]:
                             nums = row[c].split('/')
-                            row[c] = round(float(nums[0])/float(nums[1]), 6)
+                            row[c] = float(nums[0])/float(nums[1])
                         else:
                             row[c] = float(row[c])
+                    fa = {c: row[c]}
                     fRow.append(row[c])
+                    fa = {c: row[c]}
             except Exception as e:
                 quarantines.append(row["Path"])
                 fail.extend([l_start, row["Checksum"], str(e)[0:800]])
@@ -203,6 +207,7 @@ if __name__ == '__main__':
                     deletes.extend(files_pending)
                     files_pending = []
                 else:
+                    db.errors = ''
                     buffer_dumps += 1
                     data = [inj[x:x+len(cols)] for x in range(0, len(inj), len(cols))]
                     query = statement + '(' + '%s,'*(len(cols)-1) + '%s);'
@@ -224,6 +229,7 @@ if __name__ == '__main__':
                 deletes.extend(files_pending)
                 files_pending = []
             else:
+                db.errors = ''
                 buffer_dumps += 1
                 data = [inj[x:x+len(cols)] for x in range(0, len(inj), len(cols))]
                 query = statement + '(' + '%s,'*(len(cols)-1) + '%s);'
@@ -245,6 +251,5 @@ if __name__ == '__main__':
                 r = db.query(fail_query, fail)
 
             r = db.query("insert into performance (Start, Time, Buffer, Attempted, BufferDumps) values (%s, %s, %s, %s, %s);", [l_start, round(stop-start, 6), buffer_size, total, buffer_dumps])
-            #r = db.query("delete from image;", [])
             #clean_dir(d_dir, deletes)
             #clean_dir(q_dir, quarantines)

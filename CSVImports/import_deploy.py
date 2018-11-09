@@ -55,7 +55,7 @@ with open('../Data/DeployDataClean.csv', mode='r') as infile:
                 row[j] = int(row[j])
             elif j in floats:
                 row[j] = float(row[j])
-        row.extend(["M", "M"])
+        row.extend(["MC", "MC"])
         query += '(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s),'
         id.extend(row)
         i = i + 1
