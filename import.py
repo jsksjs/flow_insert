@@ -1,6 +1,7 @@
 import mysql_connector as con
 from time import perf_counter
 from datetime import datetime
+import time
 import os
 import meta as m
 import argparse
@@ -163,7 +164,7 @@ if __name__ == '__main__':
     deletes = []
     quarantines = []
     start = perf_counter()
-    l_start = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    l_start = time.time()
     # connect and query
     with con.MYSQL(host, database, usr, pwd) as db:
         for row in values:
@@ -173,8 +174,9 @@ if __name__ == '__main__':
                     if c not in row or row[c].strip(' ') == '':
                         row[c] = None
                     elif c in timestamps:
-                        t = datetime.strptime(row[c], "%Y:%m:%d %H:%M:%S")
-                        row[c] = t.strftime("%Y-%m-%d %H:%M:%S")
+                        d = datetime.strptime(row[c], "%Y:%m:%d %H:%M:%S")
+                        ts = time.mktime(d.timetuple())
+                        row[c] = ts
                     elif c in ints:
                         row[c] = int(row[c])
                     elif c in floats:
@@ -236,13 +238,12 @@ if __name__ == '__main__':
             query = ''
         stop = perf_counter()
         if total > 0:
-            l_stop = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            l_stop = time.time()
             db.query(log, [l_start, l_stop, total])
             if fail:
                 fail_query = failure + fail_query[:-1] + ";"
                 r = db.query(fail_query, fail)
-
-            print(str(l_start), str(round(stop-start, 6)), str(buffer_size), str(total), str(buffer_dumps))
+            
             r = db.query("insert into performance (Start, Time, Buffer, Attempted, BufferDumps) values (%s, %s, %s, %s, %s);", [l_start, round(stop-start, 6), buffer_size, total, buffer_dumps])
             #r = db.query("delete from image;", [])
             #clean_dir(d_dir, deletes)

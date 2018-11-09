@@ -48,7 +48,7 @@ with open('../Data/InventoryDataClean.csv', mode='r') as infile:
             if row[j].rstrip(' ') == '':
                 row[j] = None
             elif j in dates:
-                d = datetime.strptime(row[j], "%m/%d/%Y").date()
+                d = datetime.strptime(row[j], "%m/%d/%Y")
                 ts = time.mktime(d.timetuple())
                 row[j] = int(ts)
             elif j in ints:
@@ -74,4 +74,3 @@ with open('../Data/InventoryDataClean.csv', mode='r') as infile:
 stop = time.perf_counter()
 # print the result and rounded query time
 print(f'\n{r}\ncompleted query in {round(stop-start, 6)} sec')
-[print(i) for i in (db.errors.split("query():"))]

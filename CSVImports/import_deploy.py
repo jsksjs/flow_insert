@@ -1,5 +1,6 @@
 import mysql_connector as con
 import time
+from datetime import datetime
 import csv
 
 # read cfg for host and database to connect to
@@ -37,16 +38,9 @@ with open('../Data/DeployDataClean.csv', mode='r') as infile:
     buffer_size = 10
     i = 0
     for row in values:
-        if i >= buffer_size:
-            query = query_base + query[:-1] + ";"
-            r = db.query(query, id, True)
-            i = 0
-            id = []
-            query = ''
-
         # the indices of the columns whose types/formats need to be changed
         dates = [4, 5, 6]
-        ints = [1]
+        ints = [0, 1]
         floats = [9, 10, 15]
 
         # replace null values with None and change types
@@ -54,21 +48,23 @@ with open('../Data/DeployDataClean.csv', mode='r') as infile:
             if row[j].rstrip(' ') == '':
                 row[j] = None
             elif j in dates:
-                temp = row[j].split('/')
-                year = temp[2]
-                month = temp[0]
-                day = temp[1]
-                month.zfill(2)
-                day.zfill(2)
-                row[j] = year + '-' + month + '-' + day
+                d = datetime.strptime(row[j], "%m/%d/%Y").date()
+                ts = time.mktime(d.timetuple())
+                row[j] = ts
             elif j in ints:
                 row[j] = int(row[j])
             elif j in floats:
                 row[j] = float(row[j])
-        row.extend([None, None])
+        row.extend(["M", "M"])
         query += '(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s),'
         id.extend(row)
         i = i + 1
+        if i >= buffer_size:
+            query = query_base + query[:-1] + ";"
+            r = db.query(query, id)
+            i = 0
+            id = []
+            query = ''
 
     if i != 0:
         query = query_base + query[:-1] + ";"
