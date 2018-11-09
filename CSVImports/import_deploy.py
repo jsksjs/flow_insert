@@ -71,8 +71,6 @@ with open('../Data/DeployDataClean.csv', mode='r') as infile:
         r = db.query(query, id)
         query = ''
 
-"""r = db.query("select * from user where UserID=%s;", [(id)], True)"""
-
 # stop timing
 stop = time.perf_counter()
 # print the result and rounded query time

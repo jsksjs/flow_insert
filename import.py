@@ -132,7 +132,6 @@ if __name__ == '__main__':
     failure = ("insert into failure (Start, Checksum, Note) values ")
     fail_query = ''
 
-
     tag_set = ("Image ImageDescription, Image Orientation, "
                "Image XResolution, Image YResolution, "
                "Image ResolutionUnit, Image Software, "
@@ -170,12 +169,12 @@ if __name__ == '__main__':
         for row in values:
             fRow = []
             try:
-                for c in cols:
-                    if c not in row or row[c].strip(' ') == '':
+                for c in cols:                    
+                    if c not in row or row[c] is not None and row[c].strip(' ') == '':
                         row[c] = None
                     elif c in timestamps:
                         d = datetime.strptime(row[c], "%Y:%m:%d %H:%M:%S")
-                        ts = time.mktime(d.timetuple())
+                        ts = int(time.mktime(d.timetuple()))
                         row[c] = ts
                     elif c in ints:
                         row[c] = int(row[c])
@@ -188,7 +187,7 @@ if __name__ == '__main__':
                     fRow.append(row[c])
             except Exception as e:
                 quarantines.append(row["Path"])
-                fail.extend([l_start, row["Checksum"], str(e)[0:500]])
+                fail.extend([l_start, row["Checksum"], str(e)[0:800]])
                 fail_query += '(' + '%s,'*2 + '%s),'
                 continue
             i = i + 1
@@ -211,9 +210,9 @@ if __name__ == '__main__':
                         r = db.query(query, inj)
                         if db.errors:
                             quarantines.append(j)
-                            fail.extend([l_start, d[20], str(db.errors)[0:500]])
+                            fail.extend([l_start, d[20], str(db.errors)[0:800]])
                             fail_query += '(' + '%s,'*2 + '%s),'
-                            db.errors = ''                    
+                            db.errors = ''
                 i = 0
                 inj = []
                 query = ''
@@ -232,9 +231,9 @@ if __name__ == '__main__':
                     r = db.query(query, inj)
                     if db.errors:
                         quarantines.append(j)
-                        fail.extend([l_start, d[20], str(db.errors)[0:500]])
+                        fail.extend([l_start, d[20], str(db.errors)[0:800]])
                         fail_query += '(' + '%s,'*2 + '%s),'
-                        db.errors = ''  
+                        db.errors = ''
             query = ''
         stop = perf_counter()
         if total > 0:
@@ -243,7 +242,7 @@ if __name__ == '__main__':
             if fail:
                 fail_query = failure + fail_query[:-1] + ";"
                 r = db.query(fail_query, fail)
-            
+
             r = db.query("insert into performance (Start, Time, Buffer, Attempted, BufferDumps) values (%s, %s, %s, %s, %s);", [l_start, round(stop-start, 6), buffer_size, total, buffer_dumps])
             #r = db.query("delete from image;", [])
             #clean_dir(d_dir, deletes)
