@@ -158,7 +158,8 @@ if __name__ == '__main__':
     floats = ["ExposureTime",
               "FNumber",
               "CompressedBitsPerPixel",
-              "ShutterSpeedValue"]
+              "ShutterSpeedValue",
+              "MaxApertureValue"]
     files_pending = []
     deletes = []
     quarantines = []
@@ -169,7 +170,7 @@ if __name__ == '__main__':
         for row in values:
             fRow = []
             try:
-                for c in cols:                    
+                for c in cols:
                     if c not in row or row[c] is not None and row[c].strip(' ') == '':
                         row[c] = None
                     elif c in timestamps:
