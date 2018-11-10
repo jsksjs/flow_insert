@@ -16,18 +16,19 @@ Checksum, Data"""
 
 des = """image meta data crawler"""
 
+# holds gathered results from async job
 results = []
-hash_results = []
 
 
+# extends result list with a new result
 def collect_results(result):
     results.extend(result)
 
 
-def insert_results(result):
-    hash_results.extend(result)
-
-
+# for each image in this SID collection
+# get the corresponding tag/value dict
+# and pair the dict to the filename.
+# append resulting dict to S
 def exif(sid_images, tag_set):
     S = []
     for path in sid_images:
@@ -37,9 +38,13 @@ def exif(sid_images, tag_set):
         else:
             p = path.rsplit('/')[-1]
             S.append({p: utils.get_exif_tags(path, tag_set)})
+    # format: [{file1: dict of meta k:v for file1},
+    # {file2: dict of meta k:v for file2}, ...]
     return S
 
 
+# cleans out files and moves them to a given directory, deleting empty dir.
+# transplants dir structure to new folder, mimicking original in_dir structure.
 def clean_dir(out, in_dir, files):
     for f in files:
         folder = os.path.basename(os.path.dirname(f))
@@ -50,12 +55,16 @@ def clean_dir(out, in_dir, files):
         os.rename(f, file)
         cur_folder = os.path.split(f)[0]
         if(cur_folder != in_dir):
+            # Can only del if empty!
             try:
                 os.rmdir(cur_folder)
             except OSError:
                 pass
 
 
+# gathers the needed tag:values for each file in the in_dir
+# ensures that files fit folder naming structure before processing
+# and that files are in-fact .jpg images.
 def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
     if in_d is not None and os.path.exists(in_d):
         in_dir = in_d
@@ -75,8 +84,12 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
     else:
         cpus = os.cpu_count()
 
+    # holds images that are to be moved
+    # to a quarantine folder and NOT returned.
     quarantines = []
 
+    # paths of all images.
+    # form of {SID:[dirs that belong to that SID], ...}
     paths = defaultdict(lambda: [])
     for dirpath, dirnames, filenames in os.walk(in_dir):
         if dirnames:
@@ -85,16 +98,24 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
                 paths[p].append(os.path.join(dirpath, d))
     # map/scatter---------------------------------------------------------------------------------------------------
     p1 = mp.Pool(processes=cpus)
+    # keep running total of all processed images.
+    # these are images that will (be attempted to) be inserted into DB.
     total = 0
-    for path in paths:
-        for p in paths[path]:
+    # for every SID:
+    for sid in paths:
+        # for every path belonging to SID:
+        for p in paths[sid]:
+            # split folder name to later match against file name
             folder_info = os.path.basename(p).split('_')
             folder_info[3] = folder_info[3].split(' ')[0]
-            # each site in ||
+            # for every path, name, file in the path
             for dirpath, dirnames, filenames in os.walk(p):
+                # images belonging to SID
                 sid_images = []
+                # for every file
                 for f in filenames:
-                    if f.lower().endswith(".jpg"):   
+                    # ensure that it is jpg, and match name to folder name
+                    if f.lower().endswith(".jpg"):
                         file_info = f.split('_')
                         if ' ' in file_info[3]:
                             file_info[3] = file_info[3].split(' ')[0]
@@ -102,7 +123,10 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
                             sid_images.append(os.path.join(dirpath, f))
                         else:
                             quarantines.append(os.path.join(dirpath, f))
+                # add based on added files
                 total += len(sid_images)
+                # only attempt to dispatch processes if
+                # there is something to process
                 if len(sid_images) > 0:
                     p1.apply_async(exif,
                                    args=(sid_images, tag_set),
@@ -113,4 +137,5 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
 
     #clean_dir(q_dir, in_dir, quarantines)
 
+    # format: {num processed: [{file1: dict of meta k:v for file1}, ...]}
     return {total: results}

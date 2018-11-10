@@ -6,6 +6,12 @@ import os
 import meta as m
 import argparse
 
+# TODO: run automations of this script, returning and logging the
+# total time of the inserts and tweaking the buffer size argument
+# based on consistent increases in time.
+# Also: figure out why iterations with same buffersize are wildly different
+# in terms of runtime.
+
 des = """ECO DB Import Tool"""
 
 parser = argparse.ArgumentParser(description=des,
@@ -54,6 +60,7 @@ else:
     buffer_size = 1
 
 
+# Strips the returned meta of 'category' labels in the keys.
 def cleaned_meta(meta):
     values = []
     for d in meta:
@@ -70,6 +77,7 @@ def cleaned_meta(meta):
     return values
 
 
+# Cleans out files and moves them to a given directory, deleting empty dir.
 def clean_dir(out, files):
     for f in files:
         folder = os.path.basename(os.path.dirname(f))
@@ -94,7 +102,7 @@ if __name__ == '__main__':
         database = f.readline().strip('\n')
 
     # read cfg for credentials (username and password to DB)
-    # TODO: decrypt using a key found in another file
+    # TODO: decrypt using a key found in another file(?)
     with open("cred.cfg") as f:
         usr = f.readline().strip('\n')
         pwd = f.readline().strip('\n')
@@ -103,7 +111,8 @@ if __name__ == '__main__':
     inj = []
     # failure injectable
     fail = []
-    # query that injects ID into %s
+    # the columsn matching the DB specification
+    # and format (to be inserted into)
     columns = ("CameraNumber,Orientation,"
                "XResolution,YResolution,"
                "ResolutionUnit,Software,TimeTaken,"
@@ -115,6 +124,7 @@ if __name__ == '__main__':
                "ExposureBiasValue,"
                "MaxApertureValue,MeteringMode,Flash,"
                "Checksum,Data")
+    # exif tags that are returned (in this order)
     tags = ("ImageDescription,Orientation,"
             "XResolution,YResolution,"
             "ResolutionUnit,Software,DateTime,"
@@ -126,12 +136,19 @@ if __name__ == '__main__':
             "ExposureBiasValue,"
             "MaxApertureValue,MeteringMode,Flash,"
             "Checksum,Data")
+    # statement for image table insertion
     statement = (f"insert into image ({columns}) values ")
+    # build upon this to use for image insert ... (%s, %s,...),
     query = ''
+    # statement and query for inserting into log table
     log = ("insert into importrun (Start, End, Attempted) values (%s, %s, %s);")
+    # statement for inserting into failure table
     failure = ("insert into failure (Start, Checksum, Note) values ")
+    # build upon this to use for failure insert ... (%s, %s,...)
     fail_query = ''
 
+    # tags that should be taken from exif
+    # (exactly as they are found from exifread)
     tag_set = ("Image ImageDescription, Image Orientation, "
                "Image XResolution, Image YResolution, "
                "Image ResolutionUnit, Image Software, "
@@ -144,15 +161,18 @@ if __name__ == '__main__':
                "EXIF MaxApertureValue, "
                "EXIF MeteringMode, EXIF Flash")
 
+    # from the single-value dict, get the total and metatags pair
+    # then clean the data
     (total, meta), = m.get_meta(in_dir, tag_set, q_dir, cpus).items()
     values = cleaned_meta(meta)
 
-    # TODO: run automations of this script, returning and logging the
-    # total time of the inserts and tweaking the buffer size argument
-    # based on consistent increases in time
+    # list of the exif tags
     cols = tags.split(',')
+    # current buffer size
     i = 0
+    # count the number of times the buffer is dumped erroneously
     buffer_dumps = 0
+    # the types to be converted and fitted to the right formats
     timestamps = ["DateTime"]
     ints = ["ImageDescription", "XResolution", "YResolution"]
     floats = ["ExposureTime",
@@ -160,19 +180,28 @@ if __name__ == '__main__':
               "CompressedBitsPerPixel",
               "ShutterSpeedValue",
               "MaxApertureValue"]
+    # files that may be moved to out dir or quarantine dir
+    # depends on if they are successful in insert
     files_pending = []
+    # files to be moved to d_dir
     deletes = []
+    # files to be moved to quarantine
     quarantines = []
+    # performance timing
     start = perf_counter()
+    # epoch timing for log
     l_start = time.time()
     # connect and query
     with con.MYSQL(host, database, usr, pwd) as db:
+        # for every row of exif
         for row in values:
-            fa = {}
+            # row of exif data, this is what will be inserted
+            # made of converted values
             fRow = []
             try:
+                # for every exif tag that is in the returned meta dict
                 for c in cols:
-                    fa = {c: row[c]}
+                    # do conversions
                     if row.get(c) is None or row[c].strip(' ') == '':
                         row[c] = None
                     elif c in timestamps:
@@ -187,30 +216,45 @@ if __name__ == '__main__':
                             row[c] = float(nums[0])/float(nums[1])
                         else:
                             row[c] = float(row[c])
-                    fa = {c: row[c]}
                     fRow.append(row[c])
-                    fa = {c: row[c]}
+            # on value conversion failure, put in quarantine and log failure
             except Exception as e:
                 quarantines.append(row["Path"])
                 fail.extend([l_start, row["Checksum"], str(e)[0:800]])
                 fail_query += '(' + '%s,'*2 + '%s),'
                 continue
+            # buffer is added to if this point reached
             i = i + 1
+            # add current file to pending
             files_pending.append(row["Path"])
             row = fRow
+            # new image to insert, append to query
             query += '(' + '%s,'*(len(cols)-1) + '%s),'
+            # new image to insert, append to value injectable
             inj.extend(row)
+            # when buffer is full, attempt insert
             if i >= buffer_size:
+                # attempt query
                 query = statement + query[:-1] + ';'
                 r = db.query(query, inj)
+                # on success, add file to be moved to deleted folder
+                # reset pending files
                 if not db.errors:
                     deletes.extend(files_pending)
                     files_pending = []
+                # on failure
                 else:
+                    # reset general query errors
                     db.errors = ''
+                    # buffer dumped, increment
                     buffer_dumps += 1
+                    # break up the injectables list into lists corresponding to files
+                    # each sublist length matches the number of columns
                     data = [inj[x:x+len(cols)] for x in range(0, len(inj), len(cols))]
+                    # single-insert query
                     query = statement + '(' + '%s,'*(len(cols)-1) + '%s);'
+                    # perform single-inserts using sublists
+                    # insert failures and unmasked error codes
                     for d, j in zip(data, files_pending):
                         inj = d
                         r = db.query(query, inj)
@@ -219,9 +263,14 @@ if __name__ == '__main__':
                             fail.extend([l_start, d[20], str(db.errors)[0:800]])
                             fail_query += '(' + '%s,'*2 + '%s),'
                             db.errors = ''
+                # buffer is reset
                 i = 0
+                # injectables is reset
                 inj = []
+                # query is reset
                 query = ''
+        # reached end of files, buffer not empty, attempt to insert
+        # same process as above
         if i != 0:
             query = statement + query[:-1] + ";"
             r = db.query(query, inj)
@@ -242,7 +291,9 @@ if __name__ == '__main__':
                         fail_query += '(' + '%s,'*2 + '%s),'
                         db.errors = ''
             query = ''
+        # done inserting images, record performance end
         stop = perf_counter()
+        # if images have actually been processed, insert into failure, performance
         if total > 0:
             l_stop = time.time()
             db.query(log, [l_start, l_stop, total])

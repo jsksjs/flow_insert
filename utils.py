@@ -2,7 +2,8 @@ import exifread
 import hashlib
 
 
-# given an image file with exif metadata return set of tags that are required
+# Given an image file with exif metadata, return set of tags that are required
+# as well as a checksum and the hex of the file.
 def get_exif_tags(path, tag_set=[]):
     data = b''
     checksum = ''
