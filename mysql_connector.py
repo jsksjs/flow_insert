@@ -10,12 +10,13 @@ import mysql.connector as msc  # pyodbc not easy to configure on mac, pypyodbc n
 
 class MYSQL:
     # constructor
-    def __init__(self, srv, db, uid=False, pwd=False):
+    def __init__(self, srv, db, port, uid=False, pwd=False):
         # The MSSQL variables for injection safe connection strings
         self.srv = srv  # MYSQL server hostname to connect to
         self.db = db  # db name
         self.uid = uid
         self.pwd = pwd
+        self.port = port
         self.errors = ''
         self.conn = self.start()  # keeps the connection object
         self.SQL = []  # list of Qs
@@ -49,7 +50,7 @@ class MYSQL:
             self.uid = sys.stdin.readline().replace('\n', '')
             self.pwd = getpass.getpass(prompt='pwd: ', stream=None)  # was stream=sys.sdin
         try:  # connection start
-            conn = msc.connect(host=self.srv, database=self.db, user=self.uid, password=self.pwd)
+            conn = msc.connect(host=self.srv, database=self.db, port=self.port, user=self.uid, password=self.pwd)
         except RuntimeError:
             print('start():ER3.ODBC')
             self.errors += 'start():ER3.ODBC' + '\n'

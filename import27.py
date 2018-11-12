@@ -1,9 +1,9 @@
 import mysql_connector as con
-from time import perf_counter
 from datetime import datetime
 import time
+import multiprocessing as mp
 import os
-import meta as m
+import meta27 as m
 import argparse
 
 # TODO: run automations of this script, returning and logging the
@@ -57,7 +57,7 @@ else:
 if args.cpus is not None:
     cpus = args.cpus
 else:
-    cpus = os.cpu_count()
+    cpus = mp.cpu_count()
 if args.buffer_size is not None:
     buffer_size = args.buffer_size
 else:
@@ -145,7 +145,7 @@ if __name__ == '__main__':
             "MaxApertureValue,MeteringMode,Flash,"
             "Checksum,Data")
     # statement for image table insertion
-    statement = (f"insert into image ({columns}) values ")
+    statement = "insert into image (" + columns + ") values "
     # build upon this to use for image insert ... (%s, %s,...),
     query = ''
     # statement and query for inserting into log table
@@ -196,7 +196,7 @@ if __name__ == '__main__':
     # files to be moved to quarantine
     quarantines = []
     # performance timing
-    start = perf_counter()
+    start = time.clock()
     # epoch timing for log
     l_start = time.time()
     # connect and query
@@ -300,7 +300,7 @@ if __name__ == '__main__':
                         db.errors = ''
             query = ''
         # done inserting images, record performance end
-        stop = perf_counter()
+        stop = time.clock()
         # if images have actually been processed, insert into failure, performance
         if total > 0:
             l_stop = time.time()
