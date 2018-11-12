@@ -65,7 +65,7 @@ def clean_dir(out, in_dir, files):
 # gathers the needed tag:values for each file in the in_dir
 # ensures that files fit folder naming structure before processing
 # and that files are in-fact .jpg images.
-def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
+def get_meta(in_d, tag_s, q_d, c=mp.cpu_count()):
     if in_d is not None and os.path.exists(in_d):
         in_dir = in_d
     else:
@@ -82,7 +82,7 @@ def get_meta(in_d, tag_s, q_d, c=os.cpu_count()):
     if c is not None:
         cpus = c
     else:
-        cpus = os.cpu_count()
+        cpus = mp.cpu_count()
 
     # holds images that are to be moved
     # to a quarantine folder and NOT returned.
