@@ -3,6 +3,8 @@ import time
 import multiprocessing as mp
 import utils
 from collections import defaultdict
+import hashlib
+import binascii
 
 """ImageDescription, Orientation,
 XResolution, YResolution,
@@ -31,13 +33,35 @@ def collect_results(result):
 # append resulting dict to S
 def exif(sid_images, tag_set):
     S = []
+    data = b''
+    checksum = ''
+    hasher = hashlib.sha256()
     for path in sid_images:
         if os.name == 'nt':
             p = path.rsplit('\\')[-1]
-            S.append({p: utils.get_exif_tags(path, tag_set)})
+            vals = utils.get_exif_tags(path, tag_set)
+            with open(path, 'rb') as f:
+                for chunk in iter(lambda: f.read(524288), b""):
+                    data += chunk
+                    hasher.update(chunk)
+                f.seek(0)
+            checksum = hasher.hexdigest()
+            vals["Data"] = str(binascii.hexlify(data))
+            vals["Checksum"] = checksum
+            S.append({p: vals})
         else:
             p = path.rsplit('/')[-1]
-            S.append({p: utils.get_exif_tags(path, tag_set)})
+            vals = utils.get_exif_tags(path, tag_set)
+            with open(path, 'rb') as f:
+                for chunk in iter(lambda: f.read(524288), b""):
+                    data += chunk
+                    hasher.update(chunk)
+                f.seek(0)
+            checksum = hasher.hexdigest()
+            vals["Data"] = str(binascii.hexlify(data))
+            vals["Checksum"] = checksum
+            S.append({p: vals})
+            S.append({p: vals})
     # format: [{file1: dict of meta k:v for file1},
     # {file2: dict of meta k:v for file2}, ...]
     return S
