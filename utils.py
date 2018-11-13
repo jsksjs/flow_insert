@@ -26,7 +26,7 @@ def get_exif_tags(path, tag_set=[]):
                 T[t] = str(tags[t]).rstrip(' ')
             else:
                 T[t] = None
-    T["Data"] = binascii.hexlify(data)
+    T["Data"] = str(binascii.hexlify(data))
     T["Checksum"] = checksum
     T["Path"] = path
     return T
