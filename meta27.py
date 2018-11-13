@@ -1,7 +1,7 @@
 import os
 import time
 import multiprocessing as mp
-import utils
+import utils27
 from collections import defaultdict
 import hashlib
 import binascii
@@ -39,28 +39,25 @@ def exif(sid_images, tag_set):
     for path in sid_images:
         if os.name == 'nt':
             p = path.rsplit('\\')[-1]
-            vals = utils.get_exif_tags(path, tag_set)
+            vals = utils27.get_exif_tags(path, tag_set)
             with open(path, 'rb') as f:
                 for chunk in iter(lambda: f.read(524288), b""):
                     data += chunk
                     hasher.update(chunk)
-                f.seek(0)
             checksum = hasher.hexdigest()
             vals["Data"] = str(binascii.hexlify(data))
             vals["Checksum"] = checksum
             S.append({p: vals})
         else:
             p = path.rsplit('/')[-1]
-            vals = utils.get_exif_tags(path, tag_set)
+            vals = utils27.get_exif_tags(path, tag_set)
             with open(path, 'rb') as f:
                 for chunk in iter(lambda: f.read(524288), b""):
                     data += chunk
                     hasher.update(chunk)
-                f.seek(0)
             checksum = hasher.hexdigest()
             vals["Data"] = str(binascii.hexlify(data))
             vals["Checksum"] = checksum
-            S.append({p: vals})
             S.append({p: vals})
     # format: [{file1: dict of meta k:v for file1},
     # {file2: dict of meta k:v for file2}, ...]
