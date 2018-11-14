@@ -24,6 +24,18 @@ results = []
 
 # extends result list with a new result
 def collect_results(result):
+    for r in result:
+        for k in r:
+            data = b''
+            checksum = ''
+            hasher = hashlib.sha256()
+            with open(r[k]["Path"], 'rb') as f:
+                for chunk in iter(lambda: f.read(524288), b""):
+                    data += chunk
+                    hasher.update(chunk)
+            checksum = hasher.hexdigest()
+            r[k]["Data"] = str(binascii.hexlify(data))
+            r[k]["Checksum"] = checksum
     results.extend(result)
 
 
@@ -33,31 +45,14 @@ def collect_results(result):
 # append resulting dict to S
 def exif(sid_images, tag_set):
     S = []
-    data = b''
-    checksum = ''
-    hasher = hashlib.sha256()
     for path in sid_images:
         if os.name == 'nt':
             p = path.rsplit('\\')[-1]
             vals = utils27.get_exif_tags(path, tag_set)
-            with open(path, 'rb') as f:
-                for chunk in iter(lambda: f.read(524288), b""):
-                    data += chunk
-                    hasher.update(chunk)
-            checksum = hasher.hexdigest()
-            vals["Data"] = str(binascii.hexlify(data))
-            vals["Checksum"] = checksum
             S.append({p: vals})
         else:
             p = path.rsplit('/')[-1]
             vals = utils27.get_exif_tags(path, tag_set)
-            with open(path, 'rb') as f:
-                for chunk in iter(lambda: f.read(524288), b""):
-                    data += chunk
-                    hasher.update(chunk)
-            checksum = hasher.hexdigest()
-            vals["Data"] = str(binascii.hexlify(data))
-            vals["Checksum"] = checksum
             S.append({p: vals})
     # format: [{file1: dict of meta k:v for file1},
     # {file2: dict of meta k:v for file2}, ...]

@@ -1,7 +1,5 @@
-#MYSQL v 0.1, 10/25/2014
-#Timothy Becker, UCONN/SOE/CSE Phd Student
-# MYSQL Connection Factory, wraps up sophisticated functionality in
-# an easy to use extensible class...
+#MYSQL v 0.1.1, 10/25/2014, Timothy Becker
+# MYSQL Connection Factory, wraps and simplifies common workflows
 
 import sys
 import getpass
@@ -10,24 +8,24 @@ import mysql.connector as msc  # pyodbc not easy to configure on mac, pypyodbc n
 
 class MYSQL:
     # constructor
-    def __init__(self, srv, db, port, uid=False, pwd=False):
+    def __init__(self,host,db,port=3306,uid=False,pwd=False):
         # The MSSQL variables for injection safe connection strings
-        self.srv = srv  # MYSQL server hostname to connect to
+        self.host = host  # MYSQL server hostname to connect to
+        self.port = str(port)
         self.db = db  # db name
         self.uid = uid
         self.pwd = pwd
-        self.port = port
         self.errors = ''
-        self.conn = self.start()  # keeps the connection object
         self.SQL = []  # list of Qs
         self.V = []  # list of values for SQL
+        self.start()
 
     def __enter__(self):
         return self
 
     # type is that the DB error is generating stange files
     def __exit__(self, type, value, traceback):
-        # saves sve_errors.txt to DATA folder that sits at the same level as this class.py file
+        # saves errors.txt to DATA folder that sits at the same level as this class.py file
         # directory = os.path.dirname(os.path.abspath(__file__))+'/'
         # if not os.path.exists(directory): os.makedirs(directory)
         # with open(directory+self.db+'_errors.txt', 'a') as f:
@@ -44,13 +42,13 @@ class MYSQL:
             pass
 
     def start(self):
-        conn = None
+        self.conn = None
         if (not self.uid) and (not self.pwd):
             print('uid: '),
-            self.uid = sys.stdin.readline().replace('\n', '')
-            self.pwd = getpass.getpass(prompt='pwd: ', stream=None)  # was stream=sys.sdin
+            self.uid = sys.stdin.readline().replace('\n','')
+            self.pwd = getpass.getpass(prompt='pwd: ',stream=None).replace('\n','')  # was stream=sys.sdin
         try:  # connection start
-            conn = msc.connect(host=self.srv, database=self.db, port=self.port, user=self.uid, password=self.pwd)
+            self.conn = msc.connect(host=self.host,port=self.port,database=self.db,user=self.uid,password=self.pwd)
         except RuntimeError:
             print('start():ER3.ODBC')
             self.errors += 'start():ER3.ODBC' + '\n'
@@ -61,20 +59,21 @@ class MYSQL:
             print('start():ER5.Unknown_Error: {}'.format(err))
             self.errors += 'start():ER5.Unknown_Error: {}'.format(err)+'\n'
             pass
-        return conn
 
-    def query(self, sql, v=[], r=False):
+    def query(self, sql, v={}, r=False):
         res = {}
         try:  # execute one sql and v list
             if r:
                 cursor = self.conn.cursor(dictionary=True)
-                cursor.execute(sql, v)
+                if sql.count(';')<=1: cursor.execute(sql,v)
+                else:                 cursor.execute(sql,v,multi=True)
                 # for row in cursor: res.append(row)
                 res = cursor.fetchall()
                 cursor.close()
             else:  # this could be an insert command
                 cursor = self.conn.cursor()
-                cursor.execute(sql, v)
+                if sql.count(';')<=1: cursor.execute(sql,v)
+                else:                 cursor.execute(sql,v,multi=True)
                 cursor.close()
             self.conn.commit()
         except msc.errors.ProgrammingError as err:
