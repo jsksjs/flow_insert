@@ -17,7 +17,7 @@ with open("cred.cfg") as f:
 db = con.MYSQL(host, database, usr, pwd)
 
 # time query
-start = time.perf_counter()
+start = time.clock()
 
 # variable to be injected
 id = []
@@ -65,6 +65,4 @@ with open('C:\\Users\\Nick\\Desktop\\Working\\Flow_Insert\\Data\\FakeUsers.csv',
 """r = db.query("select * from user where UserID=%s;", [(id)], True)"""
 
 # stop timing
-stop = time.perf_counter()
-# print the result and rounded query time
-print(f'\n{r}\ncompleted query in {round(stop-start, 6)} sec')
+stop = time.clock()

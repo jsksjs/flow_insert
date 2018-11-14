@@ -15,7 +15,7 @@ with open("cred.cfg") as f:
 # connect
 db = con.MYSQL(host, database, usr, pwd)
 # time query
-start = time.perf_counter()
+start = time.clock()
 
 # variable to be injected
 id = '1'
@@ -25,6 +25,6 @@ v = [None, 'test', None, 'test1']
 r = db.query(s, v)
 
 # stop timing
-stop = time.perf_counter()
+stop = time.clock()
 # print the result and rounded query time
 print(f'\n{r}\ncompleted query in {round(stop-start, 6)} sec')
