@@ -3,7 +3,7 @@ from datetime import datetime
 import time
 import multiprocessing as mp
 import os
-import meta27 as m
+import meta as m
 import argparse
 
 # TODO: run automations of this script, returning and logging the
