@@ -110,7 +110,7 @@ if __name__ == '__main__':
         database = f.readline().strip('\n')
 
     # read cfg for credentials (username and password to DB)
-    # TODO: decrypt using a key found in another file(?)
+    # TODO: decrypt using a key found in another file(%s)
     with open("cred.cfg") as f:
         usr = f.readline().strip('\n')
         pwd = f.readline().strip('\n')
@@ -199,6 +199,7 @@ if __name__ == '__main__':
     start = time.clock()
     # epoch timing for log
     l_start = time.time()
+    
     # connect and query
     with con.MYSQL(host, database, port, usr, pwd) as db:
         # for every row of exif
@@ -247,13 +248,13 @@ if __name__ == '__main__':
                 r = db.query(query, inj)
                 # on success, add file to be moved to deleted folder
                 # reset pending files
-                if not db.errors:
+                if not db.data_errors:
                     deletes.extend(files_pending)
                     files_pending = []
                 # on failure
                 else:
                     # reset general query errors
-                    db.errors = ''
+                    db.data_errors = ''
                     # buffer dumped, increment
                     buffer_dumps += 1
                     # break up the injectables list into lists corresponding to files
@@ -266,11 +267,11 @@ if __name__ == '__main__':
                     for d, j in zip(data, files_pending):
                         inj = d
                         r = db.query(query, inj)
-                        if db.errors:
+                        if db.data_errors:
                             quarantines.append(j)
-                            fail.extend([l_start, d[20], str(db.errors)[0:800]])
+                            fail.extend([l_start, d[20], str(db.data_errors)[0:800]])
                             fail_query += '(' + '%s,'*2 + '%s),'
-                            db.errors = ''
+                            db.data_errors = ''
                 # buffer is reset
                 i = 0
                 # injectables is reset
@@ -282,22 +283,22 @@ if __name__ == '__main__':
         if i != 0:
             query = statement + query[:-1] + ";"
             r = db.query(query, inj)
-            if not db.errors:
+            if not db.data_errors:
                 deletes.extend(files_pending)
                 files_pending = []
             else:
-                db.errors = ''
+                db.data_errors = ''
                 buffer_dumps += 1
                 data = [inj[x:x+len(cols)] for x in range(0, len(inj), len(cols))]
                 query = statement + '(' + '%s,'*(len(cols)-1) + '%s);'
                 for d, j in zip(data, files_pending):
                     inj = d
                     r = db.query(query, inj)
-                    if db.errors:
+                    if db.data_errors:
                         quarantines.append(j)
-                        fail.extend([l_start, d[20], str(db.errors)[0:800]])
+                        fail.extend([l_start, d[20], str(db.data_errors)[0:800]])
                         fail_query += '(' + '%s,'*2 + '%s),'
-                        db.errors = ''
+                        db.data_errors = ''
             query = ''
         # done inserting images, record performance end
         stop = time.clock()

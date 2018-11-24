@@ -1,23 +1,22 @@
-#MYSQL v 0.1.1, 10/25/2014, Timothy Becker
+#MYSQL v 0.1.1, 11/14/2018, Timothy Becker
 # MYSQL Connection Factory, wraps and simplifies common workflows
 
 import sys
 import getpass
 import mysql.connector as msc  # pyodbc not easy to configure on mac, pypyodbc not encoding/decoding
 
-
 class MYSQL:
-    # constructor
-    def __init__(self,host,db,port=3306,uid=False,pwd=False):
+    def __init__(self,host,db,port=3306,uid=False,pwd=False): # constructor
         # The MSSQL variables for injection safe connection strings
-        self.host = host  # MYSQL server hostname to connect to
-        self.port = str(port)
-        self.db = db  # db name
-        self.uid = uid
-        self.pwd = pwd
+        self.host   = host  # MYSQL server hostname to connect to
+        self.port   = port
+        self.db     = db  # db name
+        self.uid    = uid
+        self.pwd    = pwd
         self.errors = ''
-        self.SQL = []  # list of Qs
-        self.V = []  # list of values for SQL
+        self.data_errors = ''
+        self.SQL    = []
+        self.V      = []
         self.start()
 
     def __enter__(self):
@@ -25,12 +24,6 @@ class MYSQL:
 
     # type is that the DB error is generating stange files
     def __exit__(self, type, value, traceback):
-        # saves errors.txt to DATA folder that sits at the same level as this class.py file
-        # directory = os.path.dirname(os.path.abspath(__file__))+'/'
-        # if not os.path.exists(directory): os.makedirs(directory)
-        # with open(directory+self.db+'_errors.txt', 'a') as f:
-        #    f.write(self.errors)
-        # close up the connection
         try:
             self.conn.close()
         except RuntimeError:
@@ -48,7 +41,7 @@ class MYSQL:
             self.uid = sys.stdin.readline().replace('\n','')
             self.pwd = getpass.getpass(prompt='pwd: ',stream=None).replace('\n','')  # was stream=sys.sdin
         try:  # connection start
-            self.conn = msc.connect(host=self.host,port=self.port,database=self.db,user=self.uid,password=self.pwd)
+            self.conn = msc.connect(host=self.host,database=self.db,port=self.port,user=self.uid,password=self.pwd)
         except RuntimeError:
             print('start():ER3.ODBC')
             self.errors += 'start():ER3.ODBC' + '\n'
@@ -60,43 +53,70 @@ class MYSQL:
             self.errors += 'start():ER5.Unknown_Error: {}'.format(err)+'\n'
             pass
 
-    def query(self, sql, v={}, r=False):
-        res = {}
-        try:  # execute one sql and v list
-            if r:
+    #takes a list of queries QS: [{'sql':'select * from %s.%s where %s = ?'%('test','test','pk'),'v':[13]]
+    #and converts the sql to a mysql.connector 8.13+ version -> ? =? %s and attaches to SQL and V
+    #SQL = ['select * from test.test where pk = %s'], V = [(13,)]
+    def set_SQL_V(self,QS):
+        for q in QS:
+            if q.has_key('sql'):
+                self.SQL += [q['sql'].replace('?','%s')]
+                if q.has_key('v'): self.V += [tuple(q['v'])]
+                else:              self.V += [()]
+        if len(self.SQL) != len(self.V):
+            print('set_SQL_V():ER5.A.Unkown_Internal_Error')
+            self.SQL,self.V = [],[]
+
+    def run_SQL_V(self):
+        res=[]
+        try:
+            for i in range(len(self.SQL)):
                 cursor = self.conn.cursor(dictionary=True)
-                if sql.count(';')<=1: cursor.execute(sql,v)
-                else:                 cursor.execute(sql,v,multi=True)
-                # for row in cursor: res.append(row)
-                res = cursor.fetchall()
-                cursor.close()
-            else:  # this could be an insert command
-                cursor = self.conn.cursor()
-                if sql.count(';')<=1: cursor.execute(sql,v)
-                else:                 cursor.execute(sql,v,multi=True)
+                cursor.execute(self.SQL[i],self.V[i])
+                if cursor.with_rows: res += [cursor.fetchall()]
                 cursor.close()
             self.conn.commit()
-        except msc.errors.ProgrammingError as err:
-            print('query():ER6.SQL_Malformed Error: {}'.format(err))
-            print('SQL GIVEN: '+sql+str(v)[0:800])
-            self.errors += 'query():ER6.SQL_Malformed\n' + sql + str(v) + '\n'
-        except msc.errors.DataError:
-            print('query():ER7.Data_Not_Matching_Template')
-            self.errors += 'query():ER7.Data_Not_Matching_Template' + '\n'
-            print('SQL code:\n'+sql+'\nValue List:\n')
-            self.errors += ('SQL code:\n'+sql+'\nValue List:\n')
-            self.errors += str(v) + '\n'
-        except msc.errors.IntegrityError:
-            print('query():ER8.SQL_Constraint_Violation')
-            self.errors += 'query():ER8.SQL_Constraint_Violation' + '\n'
-            print('SQL code:\n'+sql+'\nValue List:\n')
-            self.errors += ('SQL code:\n'+sql+str(v)+'\nValue List:\n')
-            self.errors += str(v) + '\n'
-        except UnicodeDecodeError:
-            print('query():ER9.Unicode_Decoding_Error')
-            self.errors += 'query():ER9.unicode decoding issues\n'
-        except Exception as err:
-            print('query():ER10.Unknown_Error: {}'.format(err))
-            self.errors += 'query():ER10.Unknown_Error: {}'.format(err)+'\n'
+        except msc.errors.ProgrammingError as err1:
+            print('run_SQL_V():ER6.SQL_Malformed Error: {}'.format(err1))
+            self.data_errors += 'ER6.SQL_Malformed Error: {}'.format(err1)+'\n'
+        except msc.errors.DataError as err2:
+            print('run_SQL_V():ER7.Data_Not_Matching_Template: {}'.format(err2))
+            self.data_errors += 'ER7.Data_Not_Matching_Template: {}'.format(err2)+'\n'
+        except msc.errors.IntegrityError as err3:
+            print('run_SQL_V():ER8.SQL_Constraint_Violation: {}'.format(err3))
+            self.data_errors += 'ER8.SQL_Constraint_Violation: {}'.format(err3)+'\n'
+        except UnicodeDecodeError as err4:
+            print('run_SQL_V():ER9.Unicode_Decoding_Error: {}'.format(err4))
+            self.errors+='query():ER9.unicode decoding issues\n'
+            self.data_errors += 'ER9.Unicode_Decoding_Error: {}'.format(err4)+'\n'
+        except Exception as err5:
+            print('run_SQL_V():ER10.Unknown_Error: {}'.format(err5))
+            self.data_errors += 'ER10.Unknown_Error: {}'.format(err5)+'\n'
+            pass
+        return res
+
+    def query(self,sql,v):
+        res = {}
+        try:  # execute one sql and v
+            cursor = self.conn.cursor(dictionary=True)
+            cursor.execute(sql,v)
+            if cursor.with_rows: res = cursor.fetchall()
+            cursor.close()
+            self.conn.commit()
+        except msc.errors.ProgrammingError as err1:
+            print('run_SQL_V():ER6.SQL_Malformed Error: {}'.format(err1))
+            self.data_errors += 'ER6.SQL_Malformed Error: {}'.format(err1)+'\n'
+        except msc.errors.DataError as err2:
+            print('run_SQL_V():ER7.Data_Not_Matching_Template: {}'.format(err2))
+            self.data_errors += 'ER7.Data_Not_Matching_Template: {}'.format(err2)+'\n'
+        except msc.errors.IntegrityError as err3:
+            print('run_SQL_V():ER8.SQL_Constraint_Violation: {}'.format(err3))
+            self.data_errors += 'ER8.SQL_Constraint_Violation: {}'.format(err3)+'\n'
+        except UnicodeDecodeError as err4:
+            print('run_SQL_V():ER9.Unicode_Decoding_Error: {}'.format(err4))
+            self.errors+='query():ER9.unicode decoding issues\n'
+            self.data_errors += 'ER9.Unicode_Decoding_Error: {}'.format(err4)+'\n'
+        except Exception as err5:
+            print('run_SQL_V():ER10.Unknown_Error: {}'.format(err5))
+            self.data_errors += 'ER10.Unknown_Error: {}'.format(err5)+'\n'
             pass
         return res

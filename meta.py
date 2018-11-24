@@ -48,11 +48,11 @@ def exif(sid_images, tag_set):
     for path in sid_images:
         if os.name == 'nt':
             p = path.rsplit('\\')[-1]
-            vals = utils27.get_exif_tags(path, tag_set)
+            vals = utils.get_exif_tags(path, tag_set)
             S.append({p: vals})
         else:
             p = path.rsplit('/')[-1]
-            vals = utils27.get_exif_tags(path, tag_set)
+            vals = utils.get_exif_tags(path, tag_set)
             S.append({p: vals})
     # format: [{file1: dict of meta k:v for file1},
     # {file2: dict of meta k:v for file2}, ...]
