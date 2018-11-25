@@ -6,12 +6,6 @@ import os
 import meta as m
 import argparse
 
-# TODO: run automations of this script, returning and logging the
-# total time of the inserts and tweaking the buffer size argument
-# based on consistent increases in time.
-# Also: figure out why iterations with same buffersize are wildly different
-# in terms of runtime.
-
 des = """ECO DB Import Tool"""
 
 parser = argparse.ArgumentParser(description=des,
@@ -139,7 +133,7 @@ if __name__ == '__main__':
                "ShutterSpeedValue,ApertureValue,"
                "ExposureBiasValue,"
                "MaxApertureValue,MeteringMode,Flash,"
-               "Checksum,Data")
+               "Checksum,RawData")
     # exif tags that are returned (in this order)
     tags = ("ImageDescription,Orientation,"
             "XResolution,YResolution,"
@@ -151,7 +145,7 @@ if __name__ == '__main__':
             "ShutterSpeedValue,ApertureValue,"
             "ExposureBiasValue,"
             "MaxApertureValue,MeteringMode,Flash,"
-            "Checksum,Data")
+            "Checksum,RawData")
     # statement for image table insertion
     statement = "insert into image (" + columns + ") values "
     # build upon this to use for image insert ... (%s, %s,...),
