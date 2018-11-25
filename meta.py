@@ -65,10 +65,10 @@ def clean_dir(out, in_dir, files):
     for f in files:
         folder = os.path.basename(os.path.dirname(f))
         out_folder = os.path.join(out, folder)
-        file = os.path.join(out_folder, os.path.basename(f))
+        fi = os.path.join(out_folder, os.path.basename(f))
         if not os.path.exists(out_folder):
             os.mkdir(out_folder)
-        os.rename(f, file)
+        os.rename(f, fi)
         cur_folder = os.path.split(f)[0]
         if(cur_folder != in_dir):
             # Can only del if empty!
@@ -81,7 +81,7 @@ def clean_dir(out, in_dir, files):
 # gathers the needed tag:values for each file in the in_dir
 # ensures that files fit folder naming structure before processing
 # and that files are in-fact .jpg images.
-def get_meta(in_d, tag_s, q_d, c=mp.cpu_count()):
+def get_meta(in_d, tag_s, q_d, c=mp.cpu_count(), m=0):
     if in_d is not None and os.path.exists(in_d):
         in_dir = in_d
     else:
@@ -99,6 +99,10 @@ def get_meta(in_d, tag_s, q_d, c=mp.cpu_count()):
         cpus = c
     else:
         cpus = mp.cpu_count()
+    if m is not None:
+        move = m
+    else:
+        move = 0
 
     # holds images that are to be moved
     # to a quarantine folder and NOT returned.
@@ -150,7 +154,8 @@ def get_meta(in_d, tag_s, q_d, c=mp.cpu_count()):
                     time.sleep(0.1)
     p1.close()
     p1.join()
-    #clean_dir(q_dir, in_dir, quarantines)
+    if move:
+        clean_dir(q_dir, in_dir, quarantines)
 
     # format: {num processed: [{file1: dict of meta k:v for file1}, ...]}
     return {total: results}

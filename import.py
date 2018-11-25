@@ -40,6 +40,10 @@ parser.add_argument('-p',
                     '--port',
                     type=int,
                     help='DB port number')
+parser.add_argument('-m',
+                    '--move',
+                    type=int,
+                    help='move files and cleanup directories')
 args = parser.parse_args()
 
 if args.in_dir is not None and os.path.exists(args.in_dir):
@@ -66,6 +70,10 @@ if args.port is not None:
     port = args.port
 else:
     port = 3306
+if args.move is not None:
+    move = args.move
+else:
+    move = 0
 
 
 # Strips the returned meta of 'category' labels in the keys.
@@ -90,10 +98,10 @@ def clean_dir(out, files):
     for f in files:
         folder = os.path.basename(os.path.dirname(f))
         out_folder = os.path.join(out, folder)
-        file = os.path.join(out_folder, os.path.basename(f))
+        fi = os.path.join(out_folder, os.path.basename(f))
         if not os.path.exists(out_folder):
             os.mkdir(out_folder)
-        os.rename(f, file)
+        os.rename(f, fi)
         cur_folder = os.path.split(f)[0]
         if(cur_folder != in_dir):
             try:
@@ -171,7 +179,7 @@ if __name__ == '__main__':
 
     # from the single-value dict, get the total and metatags pair
     # then clean the data
-    (total, meta), = m.get_meta(in_dir, tag_set, q_dir, cpus).items()
+    (total, meta), = m.get_meta(in_dir, tag_set, q_dir, cpus, move).items()
     values = cleaned_meta(meta)
 
     # list of the exif tags
@@ -250,9 +258,8 @@ if __name__ == '__main__':
                 # reset pending files
                 if not db.data_errors:
                     deletes.extend(files_pending)
-                    files_pending = []
                 # on failure
-                else:
+                else:                    
                     # reset general query errors
                     db.data_errors = ''
                     # buffer dumped, increment
@@ -267,11 +274,15 @@ if __name__ == '__main__':
                     for d, j in zip(data, files_pending):
                         inj = d
                         r = db.query(query, inj)
-                        if db.data_errors:
+                        if not db.data_errors:
+                            deletes.extend(j)
+                        else:
                             quarantines.append(j)
                             fail.extend([l_start, d[20], str(db.data_errors)[0:800]])
                             fail_query += '(' + '%s,'*2 + '%s),'
                             db.data_errors = ''
+                # no more files pending
+                files_pending = []
                 # buffer is reset
                 i = 0
                 # injectables is reset
@@ -294,12 +305,13 @@ if __name__ == '__main__':
                 for d, j in zip(data, files_pending):
                     inj = d
                     r = db.query(query, inj)
-                    if db.data_errors:
+                    if not db.data_errors:
+                        deletes.extend(j)
+                    else:
                         quarantines.append(j)
                         fail.extend([l_start, d[20], str(db.data_errors)[0:800]])
                         fail_query += '(' + '%s,'*2 + '%s),'
                         db.data_errors = ''
-            query = ''
         # done inserting images, record performance end
         stop = time.clock()
         # if images have actually been processed, insert into failure, performance
@@ -311,5 +323,6 @@ if __name__ == '__main__':
                 r = db.query(fail_query, fail)
 
             r = db.query("insert into performance (Start, Time, Buffer, Attempted, BufferDumps) values (%s, %s, %s, %s, %s);", [l_start, round(stop-start, 6), buffer_size, total, buffer_dumps])
-            #clean_dir(d_dir, deletes)
-            #clean_dir(q_dir, quarantines)
+            if move:
+                clean_dir(d_dir, deletes)
+                clean_dir(q_dir, quarantines)

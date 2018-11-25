@@ -103,20 +103,20 @@ class MYSQL:
             cursor.close()
             self.conn.commit()
         except msc.errors.ProgrammingError as err1:
-            print('run_SQL_V():ER6.SQL_Malformed Error: {}'.format(err1))
-            self.data_errors += 'ER6.SQL_Malformed Error: {}'.format(err1)+'\n'
+            print('query():ER6.SQL_Malformed Error: {}'.format(err1))
+            self.data_errors += 'ER6.SQL_Malformed Error: {}'.format(err1)[0:800]+'\n'
         except msc.errors.DataError as err2:
-            print('run_SQL_V():ER7.Data_Not_Matching_Template: {}'.format(err2))
+            print('query():ER7.Data_Not_Matching_Template: {}'.format(err2))
             self.data_errors += 'ER7.Data_Not_Matching_Template: {}'.format(err2)+'\n'
         except msc.errors.IntegrityError as err3:
-            print('run_SQL_V():ER8.SQL_Constraint_Violation: {}'.format(err3))
+            print('query():ER8.SQL_Constraint_Violation: {}'.format(err3))
             self.data_errors += 'ER8.SQL_Constraint_Violation: {}'.format(err3)+'\n'
         except UnicodeDecodeError as err4:
-            print('run_SQL_V():ER9.Unicode_Decoding_Error: {}'.format(err4))
+            print('query():ER9.Unicode_Decoding_Error: {}'.format(err4))
             self.errors+='query():ER9.unicode decoding issues\n'
             self.data_errors += 'ER9.Unicode_Decoding_Error: {}'.format(err4)+'\n'
         except Exception as err5:
-            print('run_SQL_V():ER10.Unknown_Error: {}'.format(err5))
+            print('query():ER10.Unknown_Error: {}'.format(err5))
             self.data_errors += 'ER10.Unknown_Error: {}'.format(err5)+'\n'
             pass
         return res
