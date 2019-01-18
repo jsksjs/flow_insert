@@ -12,3 +12,4 @@ These import tools insert new images into an ecological database on an automated
 			-i /input/ -d /delete/ -q /quarantine/ -c 8 -b 20 -p 3306 -m 1
 ```
 
+This was merged into TJB's repo: https://github.com/timothyjamesbecker/eco_image
