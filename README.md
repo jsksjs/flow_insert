@@ -1,4 +1,4 @@
-Tools for insertions into an ecological database.
+These import tools insert new images into an ecological database on an automated basis through Cron.
 
 ### -i(str)	:	Input image folder literal path.
 ### -d(str)	:	Success output folder literal path.
