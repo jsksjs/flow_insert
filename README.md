@@ -1,1 +1,1 @@
-Tools for insertions into an ecological database.
+These import tools insert new images into an ecological database on an automated basis through Cron.
